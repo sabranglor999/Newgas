@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="description" content="MikroTik Remote Web - dashboard, interface, PPPoE, DHCP, firewall, NAT, queues, logs and terminal">
+<title>MikroTik Remote Web</title>
+<style>
+:root{--bg:#0d1117;--panel:#151b23;--panel2:#1c232d;--line:#303844;--text:#e7edf5;--muted:#8d98a8;--accent:#20aef3;--ok:#21c77a;--warn:#ffbd4a;--bad:#ff5f56}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.top{position:sticky;top:0;z-index:20;height:62px;background:#10151c;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px}
+.brand{font-weight:800;letter-spacing:2px}.brand span{color:var(--accent)}.top .grow{flex:1}.pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px}
+.layout{display:flex;min-height:calc(100vh - 62px)}aside{width:235px;border-right:1px solid var(--line);padding:12px;background:#10151c}
+nav button{width:100%;background:transparent;border:0;color:#b8c2d0;text-align:left;padding:11px 12px;border-radius:9px;margin:2px 0}
+nav button:hover,nav button.active{background:#1d2733;color:#fff}main{flex:1;padding:18px;max-width:1500px;margin:auto;width:100%}
+.pagehead{display:flex;gap:10px;align-items:center;margin-bottom:16px}.pagehead h1{font-size:22px;margin:0}.pagehead .grow{flex:1}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}.stat .label{color:var(--muted);font-size:12px}.stat .value{font-size:24px;font-weight:750;margin-top:5px}.stat small{color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.spaced{justify-content:space-between}.section{margin-top:14px}.section h2{font-size:15px;margin:0 0 9px}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}.table{width:100%;border-collapse:collapse;min-width:650px}.table th,.table td{padding:9px 10px;border-bottom:1px solid #252c36;text-align:left;font-size:12px;white-space:nowrap}.table th{color:#aab5c4;background:#171d25;position:sticky;top:0}.table tr:last-child td{border-bottom:0}
+.btn{border:1px solid var(--line);background:#202833;color:#fff;border-radius:8px;padding:8px 11px}.btn:hover{filter:brightness(1.15)}.btn.primary{background:#119bdc;border-color:#119bdc}.btn.danger{background:#6d2020;border-color:#8b2b2b}.btn.ok{background:#176b49;border-color:#23845d}.btn.sm{padding:5px 8px;font-size:12px}
+input,select,textarea{width:100%;background:#0f141a;color:#fff;border:1px solid var(--line);border-radius:8px;padding:9px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--accent)}label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}.field{min-width:170px;flex:1}
+.modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}.modalbox{background:#151b23;border:1px solid var(--line);border-radius:14px;width:min(650px,100%);max-height:90vh;overflow:auto;padding:18px}.modalbox h2{margin:0 0 14px}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 15%,#163144 0,#0d1117 45%)}.loginbox{width:min(440px,100%);background:#121820;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 20px 60px #0008}.logo{font-size:32px;font-weight:900;letter-spacing:5px;text-align:center}.logo span{color:var(--accent)}.sub{text-align:center;color:var(--muted);font-size:12px;margin:7px 0 22px}.loginbox .field{margin:10px 0}.hint{font-size:11px;color:var(--muted);line-height:1.5}.status{font-size:12px}.oktxt{color:var(--ok)}.badtxt{color:var(--bad)}.warntxt{color:var(--warn)}
+.terminal{height:430px;background:#070a0d;border:1px solid #202831;border-radius:10px;padding:12px;overflow:auto;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap}.terminal .cmd{color:#6dd5ff}.terminal .err{color:#ff8d88}
+.toast{position:fixed;right:15px;bottom:15px;background:#18212b;border:1px solid var(--line);border-radius:9px;padding:11px 14px;z-index:100;box-shadow:0 10px 30px #0008}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}aside{position:fixed;left:-245px;top:62px;bottom:0;z-index:30;transition:.2s}aside.open{left:0}main{padding:13px}.mobilemenu{display:block!important}}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.stat .value{font-size:19px}.top{padding:0 10px}.brand{font-size:13px}.hide-sm{display:none!important}}
+.mobilemenu{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s), esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const state={connected:false,loading:false,config:JSON.parse(localStorage.getItem("mtk_remote_cfg")||"null"),page:"dashboard",cache:{},mock:false};
+const menus=[
+ ["dashboard","Dashboard"],["interfaces","Interfaces"],["pppoe","PPPoE Active"],["dhcp","DHCP Leases"],["addresses","IP Addresses"],
+ ["routes","Routes"],["firewall","Firewall Filter"],["nat","NAT"],["queues","Queues"],["logs","Logs"],["system","System"],["terminal","Terminal"]
+];
+function toast(msg,bad=false){const d=document.createElement("div");d.className="toast";d.innerHTML=(bad?"❌ ":"✓ ")+esc(msg);document.body.appendChild(d);setTimeout(()=>d.remove(),2800)}
+function render(){if(!state.config){renderLogin();return} renderShell(); loadPage()}
+function renderLogin(){
+$("#app").innerHTML=`<div class="login"><div class="loginbox">
+<div class="logo"><span>MIKRO</span>TIK</div><div class="sub">REMOTE WEB MANAGER • RouterOS REST API</div>
+<div class="field"><label>Mode</label><select id="mode"><option value="direct">Direct REST (HP → MikroTik)</option><option value="proxy">PHP Proxy (web server → MikroTik)</option><option value="demo">Demo / Preview</option></select></div>
+<div class="field"><label>Router Address</label><input id="host" value="${esc(state.config?.host||"10.20.30.1")}" placeholder="192.168.88.1"></div>
+<div class="field"><label>REST Base Path</label><input id="base" value="${esc(state.config?.base||"/rest")}" placeholder="/rest"></div>
+<div class="field"><label>Username</label><input id="user" value="${esc(state.config?.user||"")}" autocomplete="username"></div>
+<div class="field"><label>Password</label><input id="pass" type="password" value="${esc(state.config?.pass||"")}" autocomplete="current-password"></div>
+<div class="row"><button class="btn primary" id="connect" style="flex:1">CONNECT</button><button class="btn" id="demo">DEMO</button></div>
+<p class="hint">Untuk RouterOS v7 gunakan <b>www-ssl</b> dan REST API. Jika router memakai sertifikat self-signed, browser/WebView dapat menolak HTTPS sampai sertifikat dipercaya. Jangan membuka HTTP REST ke Internet.</p>
+</div></div>`;
+$("#connect").onclick=()=>login(false);$("#demo").onclick=()=>login(true);
+}
+function login(demo){
+if(demo){state.mock=true;state.connected=true;state.config={host:"10.20.30.1",base:"/rest",user:"demo"};localStorage.setItem("mtk_remote_cfg",JSON.stringify(state.config));render();return}
+const c={mode:$("#mode").value,host:$("#host").value.trim(),base:$("#base").value.trim()||"/rest",user:$("#user").value,pass:$("#pass").value};
+if(!c.host||!c.user){toast("Alamat dan username wajib diisi",true);return}
+state.config=c;state.mock=c.mode==="demo";localStorage.setItem("mtk_remote_cfg",JSON.stringify(c));state.connected=true;render();
+}
+function renderShell(){
+$("#app").innerHTML=`<div class="top"><button class="btn mobilemenu" id="hamb">☰</button><div class="brand">MIKRO<span>TIK</span> REMOTE</div><div class="grow"></div><span class="pill" id="conn">● ${state.mock?"DEMO":"ONLINE"}</span><button class="btn sm" id="logout">Logout</button></div>
+<div class="layout"><aside id="side"><nav>${menus.map(x=>`<button data-page="${x[0]}" class="${state.page===x[0]?"active":""}">${x[1]}</button>`).join("")}</nav></aside><main id="main"></main></div>
+<div id="modal" class="hidden"></div>`;
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{state.page=b.dataset.page;document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x===b));$("#side").classList.remove("open");loadPage()});
+$("#logout").onclick=()=>{state.config=null;state.connected=false;localStorage.removeItem("mtk_remote_cfg");render()};
+$("#hamb").onclick=()=>$("#side").classList.toggle("open");
+}
+async function api(path,opts={}){
+if(state.mock)return mockApi(path,opts);
+const c=state.config; let url="";
+if(c.mode==="proxy") url=(c.proxy||"api.php")+"?path="+encodeURIComponent(path);
+else url=((/^https?:\/\//i.test(c.host)?c.host:"https://"+c.host).replace(/\/$/,""))+c.base.replace(/\/$/,"")+"/"+path.replace(/^\//,"");
+const headers={"Accept":"application/json",...(opts.body?{"Content-Type":"application/json"}:{})};
+if(c.mode!=="proxy")headers.Authorization="Basic "+btoa(unescape(encodeURIComponent(c.user+":"+c.pass)));
+const r=await fetch(url,{method:opts.method||"GET",headers,body:opts.body?JSON.stringify(opts.body):undefined,mode:"cors"});
+const txt=await r.text();let data;try{data=txt?JSON.parse(txt):null}catch{data=txt}
+if(!r.ok)throw new Error((data&&data.message)||("HTTP "+r.status));
+return data;
+}
+const mock={
+"/system/resource":[{version:"7.18.2",board-name:"RB450Gx4",cpu:"ARM",cpu-load:"12",free-memory:"462MiB",total-memory:"1GiB",uptime:"3d 12:40:22"}],
+"/interface":[
+{name:"ether1-WAN",type:"ether",running:"true",rx-byte:"18324589123",tx-byte:"3924512932",disabled:"false"},
+{name:"ether2-PPPoE",type:"ether",running:"true",rx-byte:"2812451234",tx-byte:"6924512932",disabled:"false"},
+{name:"ether3-LAN",type:"ether",running:"true",rx-byte:"4824512932",tx-byte:"1924512932",disabled:"false"},
+{name:"bridge1",type:"bridge",running:"true",rx-byte:"6824512932",tx-byte:"2924512932",disabled:"false"}],
+"/ppp/active":[
+{name:"pelanggan001",service:"pppoe",address:"10.10.10.2",uptime:"2d3h",caller-id:"AA:BB:CC:DD:EE:01"},
+{name:"pelanggan002",service:"pppoe",address:"10.10.10.3",uptime:"8h",caller-id:"AA:BB:CC:DD:EE:02"}],
+"/ip/dhcp-server/lease":[{address:"10.20.30.10",mac-address:"AA:11:22:33:44:55",host-name:"HP-User",status:"bound",server:"dhcp1"},{address:"10.20.30.11",mac-address:"BB:11:22:33:44:55",host-name:"TV",status:"bound",server:"dhcp1"}],
+"/ip/address":[{".id":"*1",address:"10.20.30.1/24",interface:"bridge1",network:"10.20.30.0"},{".id":"*2",address:"192.168.1.2/24",interface:"ether1-WAN",network:"192.168.1.0"}],
+"/ip/route":[{".id":"*1",dst-address:"0.0.0.0/0",gateway:"192.168.1.1",distance:"1",routing-table:"main",active:"true"},{".id":"*2",dst-address:"10.20.30.0/24",gateway:"bridge1",distance:"0",routing-table:"main",active:"true"}],
+"/ip/firewall/filter":[{".id":"*1",chain:"input",action:"accept",protocol:"tcp",dst-port:"8291",comment:"Winbox LAN",disabled:"false"},{".id":"*2",chain:"forward",action:"accept",connection-state:"established,related",comment:"Established",disabled:"false"}],
+"/ip/firewall/nat":[{".id":"*1",chain:"srcnat",action:"masquerade",out-interface:"ether1-WAN",comment:"Internet",disabled:"false"}],
+"/queue/simple":[{".id":"*1",name:"Pelanggan-001",target:"10.10.10.2/32",max-limit:"10M/10M",disabled:"false"},{".id":"*2",name:"Pelanggan-002",target:"10.10.10.3/32",max-limit:"10M/10M",disabled:"false"}],
+"/log":[{time:"23:31:04",topics:"info",message:"system started"},{time:"23:31:12",topics:"pppoe,info",message:"user pelanggan001 connected"}]
+};
+async function mockApi(path,opts={}){await new Promise(r=>setTimeout(r,120));if(path.endsWith("/print"))path=path.slice(0,-6);if(path==="/system/resource/print")path="/system/resource";if(path==="/ip/dhcp-server/lease/print")path="/ip/dhcp-server/lease";if(path==="/ppp/active/print")path="/ppp/active";return mock[path]||[]}
+async function get(path){return api(path.endsWith("/print")?path:path)}
+function fmtBytes(n){n=Number(n||0);if(!n)return "0 B";const u=["B","KB","MB","GB","TB"];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+" "+u[i]}
+function pageHead(title,actions=""){return `<div class="pagehead"><h1>${title}</h1><div class="grow"></div>${actions}</div>`}
+function table(rows,cols,actions=""){return `<div class="tablewrap"><table class="table"><thead><tr>${cols.map(c=>`<th>${esc(c.label)}</th>`).join("")}${actions?"<th>Action</th>":""}</tr></thead><tbody>${rows.length?rows.map((r,i)=>`<tr>${cols.map(c=>`<td>${esc(typeof c.v==="function"?c.v(r):r[c.k])}</td>`).join("")}${actions?`<td>${actions(r,i)}</td>`:""}</tr>`).join(""):`<tr><td colspan="${cols.length+(actions?1:0)}" style="color:#8893a2">Tidak ada data</td></tr>`}</tbody></table></div>`}
+async function loadPage(){
+const m=$("#main");m.innerHTML=`<div class="card">Memuat...</div>`;
+try{
+switch(state.page){
+case"dashboard":return dashboard();
+case"interfaces":return resourcePage("Interfaces","/interface",[{k:"name",label:"Name"},{k:"type",label:"Type"},{k:"running",label:"Running"},{k:"rx-byte",label:"RX",v:r=>fmtBytes(r["rx-byte"])},{k:"tx-byte",label:"TX",v:r=>fmtBytes(r["tx-byte"])}]);
+case"pppoe":return resourcePage("PPPoE Active","/ppp/active",[{k:"name",label:"User"},{k:"service",label:"Service"},{k:"address",label:"Address"},{k:"uptime",label:"Uptime"},{k:"caller-id",label:"Caller ID"}]);
+case"dhcp":return resourcePage("DHCP Leases","/ip/dhcp-server/lease",[{k:"address",label:"IP"},{k:"mac-address",label:"MAC"},{k:"host-name",label:"Host"},{k:"status",label:"Status"},{k:"server",label:"Server"}]);
+case"addresses":return resourcePage("IP Addresses","/ip/address",[{k:".id",label:"ID"},{k:"address",label:"Address"},{k:"interface",label:"Interface"},{k:"network",label:"Network"}],true);
+case"routes":return resourcePage("Routes","/ip/route",[{k:".id",label:"ID"},{k:"dst-address",label:"Destination"},{k:"gateway",label:"Gateway"},{k:"distance",label:"Distance"},{k:"routing-table",label:"Table"},{k:"active",label:"Active"}],true);
+case"firewall":return resourcePage("Firewall Filter","/ip/firewall/filter",[{k:".id",label:"ID"},{k:"chain",label:"Chain"},{k:"action",label:"Action"},{k:"protocol",label:"Protocol"},{k:"dst-port",label:"Dst Port"},{k:"comment",label:"Comment"},{k:"disabled",label:"Disabled"}],true);
+case"nat":return resourcePage("NAT","/ip/firewall/nat",[{k:".id",label:"ID"},{k:"chain",label:"Chain"},{k:"action",label:"Action"},{k:"out-interface",label:"Out Interface"},{k:"comment",label:"Comment"},{k:"disabled",label:"Disabled"}],true);
+case"queues":return resourcePage("Simple Queues","/queue/simple",[{k:".id",label:"ID"},{k:"name",label:"Name"},{k:"target",label:"Target"},{k:"max-limit",label:"Max Limit"},{k:"disabled",label:"Disabled"}],true);
+case"logs":return resourcePage("Logs","/log",[{k:"time",label:"Time"},{k:"topics",label:"Topics"},{k:"message",label:"Message"}]);
+case"system":return systemPage();
+case"terminal":return terminalPage();
+}}
+catch(e){m.innerHTML=pageHead("Error")+`<div class="card"><b class="badtxt">${esc(e.message)}</b><p class="hint">Periksa IP, port HTTPS/REST, user policy <b>rest-api</b>, sertifikat TLS, dan konektivitas.</p><button class="btn" onclick="loadPage()">Retry</button></div>`}
+}
+async function dashboard(){
+const [res,ifs,ppp,dhcp]=await Promise.all([get("/system/resource"),get("/interface"),get("/ppp/active"),get("/ip/dhcp-server/lease")]);
+const r=res[0]||{};$("#main").innerHTML=pageHead("Dashboard",`<button class="btn sm" onclick="loadPage()">↻ Refresh</button>`)
++`<div class="grid"><div class="card stat"><div class="label">RouterOS</div><div class="value">${esc(r.version||"-")}</div><small>${esc(r["board-name"]||"")}</small></div>
+<div class="card stat"><div class="label">CPU Load</div><div class="value">${esc(r["cpu-load"]||"-")}%</div><small>${esc(r.cpu||"")}</small></div>
+<div class="card stat"><div class="label">Memory Free</div><div class="value">${esc(r["free-memory"]||"-")}</div><small>Uptime ${esc(r.uptime||"-")}</small></div>
+<div class="card stat"><div class="label">PPPoE Active</div><div class="value">${ppp.length}</div><small>DHCP leases ${dhcp.length}</small></div></div>
+<div class="section"><h2>Interfaces</h2>${table(ifs,[{k:"name",label:"Name"},{k:"type",label:"Type"},{k:"running",label:"Running"},{k:"rx-byte",label:"RX",v:x=>fmtBytes(x["rx-byte"])},{k:"tx-byte",label:"TX",v:x=>fmtBytes(x["tx-byte"])}])}</div>`;
+}
+async function resourcePage(title,path,cols,crud=false){
+const rows=await get(path);const actions=crud?(r=>`<button class="btn sm" onclick='editRow(${JSON.stringify(path)},${JSON.stringify(r)})'>Edit</button> <button class="btn sm danger" onclick='deleteRow(${JSON.stringify(path)},${JSON.stringify(r[".id"]||""))}'>Delete</button>`):"";
+$("#main").innerHTML=pageHead(title,`${crud?`<button class="btn primary sm" onclick='addRow(${JSON.stringify(path)})'>+ Add</button>`:""} <button class="btn sm" onclick="loadPage()">↻</button>`)+table(rows,cols,actions);
+}
+function modal(title,body){$("#modal").className="modal";$("#modal").innerHTML=`<div class="modalbox"><div class="row spaced"><h2>${esc(title)}</h2><button class="btn sm" onclick="closeModal()">✕</button></div>${body}</div>`}
+function closeModal(){$("#modal").className="hidden";$("#modal").innerHTML=""}
+function addRow(path){editRow(path,{})}
+function editRow(path,row){
+const keys=Object.keys(row).filter(k=>k!==".id");
+const fields=keys.length?keys:defaultFields(path);
+modal(row[".id"]?"Edit":"Add",`<div id="editfields">${fields.map(k=>`<div class="field" style="margin:9px 0"><label>${esc(k)}</label><input data-k="${esc(k)}" value="${esc(row[k]||"")}"></div>`).join("")}</div>
+<div class="row" style="margin-top:14px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick='saveRow(${JSON.stringify(path)},${JSON.stringify(row[".id"]||"")})'>Save</button></div>`);
+}
+function defaultFields(path){
+if(path==="/ip/address")return["address","interface","comment","disabled"];
+if(path==="/ip/firewall/filter")return["chain","action","protocol","src-address","dst-address","dst-port","connection-state","comment","disabled"];
+if(path==="/ip/firewall/nat")return["chain","action","protocol","src-address","dst-address","out-interface","to-addresses","to-ports","comment","disabled"];
+if(path==="/queue/simple")return["name","target","max-limit","limit-at","priority","comment","disabled"];
+if(path==="/ip/route")return["dst-address","gateway","distance","routing-table","comment","disabled"];
+return["name","comment","disabled"];
+}
+async function saveRow(path,id){
+const body={};document.querySelectorAll("#editfields [data-k]").forEach(x=>{if(x.value!=="")body[x.dataset.k]=x.value});
+try{await api(path+(id?"/"+encodeURIComponent(id):""),{method:id?"PATCH":"PUT",body});closeModal();toast("Berhasil disimpan");loadPage()}catch(e){toast(e.message,true)}
+}
+async function deleteRow(path,id){
+if(!id||!confirm("Hapus item "+id+"?"))return;
+try{await api(path+"/"+encodeURIComponent(id),{method:"DELETE"});toast("Berhasil dihapus");loadPage()}catch(e){toast(e.message,true)}
+}
+async function systemPage(){
+const [res,clock,identity]=await Promise.all([get("/system/resource"),get("/system/clock"),get("/system/identity")]);
+const r=res[0]||{},c=clock[0]||{},i=identity[0]||{};
+$("#main").innerHTML=pageHead("System",`<button class="btn sm" onclick="loadPage()">↻</button>`)+
+`<div class="grid"><div class="card stat"><div class="label">Board</div><div class="value">${esc(r["board-name"]||"-")}</div><small>Architecture ${esc(r["architecture-name"]||"-")}</small></div>
+<div class="card stat"><div class="label">Version</div><div class="value">${esc(r.version||"-")}</div><small>Build ${esc(r["build-time"]||"-")}</small></div>
+<div class="card stat"><div class="label">Identity</div><div class="value">${esc(i.name||"-")}</div><small>${esc(c.time||"")}</small></div>
+<div class="card stat"><div class="label">Uptime</div><div class="value">${esc(r.uptime||"-")}</div><small>CPU ${esc(r.cpu||"")}</small></div></div>
+<div class="card section"><h2>Maintenance</h2><div class="row">
+<button class="btn" onclick="runQuick('/system/routerboard/upgrade','Check upgrade')">Check upgrade</button>
+<button class="btn" onclick="runQuick('/system/reboot','Reboot router')">Reboot</button>
+<button class="btn" onclick="runQuick('/system/reset-configuration','Reset configuration')">Reset configuration</button>
+</div><p class="hint">Reset configuration bersifat destruktif dan hanya dijalankan setelah konfirmasi.</p></div>`;
+}
+async function runQuick(path,label){
+if(path.includes("reset")&&!confirm("PERINGATAN: reset konfigurasi dapat memutus koneksi dan menghapus konfigurasi. Lanjutkan?"))return;
+try{await api(path,{method:"POST",body:{}});toast(label+" dikirim");}catch(e){toast(e.message,true)}
+}
+function terminalPage(){
+$("#main").innerHTML=pageHead("Terminal",`<button class="btn sm" onclick="clearTerm()">Clear</button>`)+
+`<div id="term" class="terminal">MikroTik Remote Terminal\nMode: ${state.mock?"DEMO":"REST /execute"}\nKetik perintah RouterOS, contoh: /system/resource/print\n\n</div><div class="row" style="margin-top:10px"><input id="cmd" placeholder="/interface/print" onkeydown="if(event.key==='Enter')sendCmd()"><button class="btn primary" onclick="sendCmd()">Run</button></div>
+<p class="hint">Terminal menggunakan REST <code>/execute</code>. Hak akses mengikuti user RouterOS. Jangan jalankan perintah destruktif tanpa memahami akibatnya.</p>`;
+}
+function clearTerm(){$("#term").textContent=""}
+async function sendCmd(){
+const x=$("#cmd"),cmd=x.value.trim();if(!cmd)return;const t=$("#term");t.innerHTML+=`<span class="cmd">&gt; ${esc(cmd)}</span>\n`;x.value="";
+try{let out;if(state.mock)out="(demo) command executed";else out=await api("/execute",{method:"POST",body:{script:cmd}});t.innerHTML+=esc(typeof out==="string"?out:JSON.stringify(out,null,2))+"\n\n";t.scrollTop=t.scrollHeight}catch(e){t.innerHTML+=`<span class="err">${esc(e.message)}</span>\n\n`}
+}
+render();
+</script>
+</body>
+</html>
