@@ -1,0 +1,2 @@
+# Newgas
+Pendatang baru
